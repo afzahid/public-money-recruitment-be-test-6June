@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using VacationRental.Api.Models;
-
+//comment
 namespace VacationRental.Api.Controllers
 {
     [Route("api/v1/bookings")]
