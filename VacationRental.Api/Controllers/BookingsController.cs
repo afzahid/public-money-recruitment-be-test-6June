@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using VacationRental.Api.Models;
+using System.Linq;
 
 namespace VacationRental.Api.Controllers
 {
@@ -38,15 +39,18 @@ namespace VacationRental.Api.Controllers
             if (!_rentals.ContainsKey(model.RentalId))
                 throw new ApplicationException("Rental not found");
 
+            int preparationTimeInDays = _rentals[model.RentalId].PreparationTimeInDays;
+
             for (var i = 0; i < model.Nights; i++)
             {
                 var count = 0;
-                foreach (var booking in _bookings.Values)
+                List<BookingViewModel> bookings = _bookings.Values.Where(a => a.RentalId == model.RentalId).ToList();
+
+                foreach (var booking in bookings)
                 {
-                    if (booking.RentalId == model.RentalId
-                        && (booking.Start <= model.Start.Date && booking.Start.AddDays(booking.Nights) > model.Start.Date)
-                        || (booking.Start < model.Start.AddDays(model.Nights) && booking.Start.AddDays(booking.Nights) >= model.Start.AddDays(model.Nights))
-                        || (booking.Start > model.Start && booking.Start.AddDays(booking.Nights) < model.Start.AddDays(model.Nights)))
+                    if ((booking.Start <= model.Start.Date && booking.Start.AddDays(booking.Nights).AddDays(preparationTimeInDays) > model.Start.Date)
+                        || (booking.Start < model.Start.AddDays(model.Nights).AddDays(preparationTimeInDays) && booking.Start.AddDays(booking.Nights).AddDays(preparationTimeInDays) >= model.Start.AddDays(model.Nights).AddDays(preparationTimeInDays))
+                        || (booking.Start > model.Start && booking.Start.AddDays(booking.Nights).AddDays(preparationTimeInDays) < model.Start.AddDays(model.Nights).AddDays(preparationTimeInDays)))
                     {
                         count++;
                     }
