@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using VacationRental.Api.Models;
 
@@ -10,10 +11,14 @@ namespace VacationRental.Api.Controllers
     public class RentalsController : ControllerBase
     {
         private readonly IDictionary<int, RentalViewModel> _rentals;
+        private readonly IDictionary<int, BookingViewModel> _bookings;
 
-        public RentalsController(IDictionary<int, RentalViewModel> rentals)
+        public RentalsController(
+            IDictionary<int, RentalViewModel> rentals,
+            IDictionary<int, BookingViewModel> bookings)
         {
             _rentals = rentals;
+            _bookings = bookings;
         }
 
         [HttpGet]
@@ -26,6 +31,20 @@ namespace VacationRental.Api.Controllers
             return _rentals[rentalId];
         }
 
+        [HttpPut]
+        [Route("{rentalId:int}")]
+        public RentalViewModel Put(int rentalId, [FromBody] RentalBindingModel updatedModel)
+        {
+            if (!_rentals.ContainsKey(rentalId))
+                throw new ApplicationException("Rental not found");
+
+            RentalViewModel rentalViewModel = _rentals[rentalId];
+            rentalViewModel.Units = updatedModel.Units;
+            rentalViewModel.PreparationTimeInDays = updatedModel.PreparationTimeInDays;
+
+            return rentalViewModel;
+        }
+
         [HttpPost]
         public ResourceIdViewModel Post(RentalBindingModel model)
         {
@@ -34,7 +53,8 @@ namespace VacationRental.Api.Controllers
             _rentals.Add(key.Id, new RentalViewModel
             {
                 Id = key.Id,
-                Units = model.Units
+                Units = model.Units,
+                PreparationTimeInDays = model.PreparationTimeInDays
             });
 
             return key;

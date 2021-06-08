@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using VacationRental.Api.Models;
 
@@ -28,25 +29,54 @@ namespace VacationRental.Api.Controllers
             if (!_rentals.ContainsKey(rentalId))
                 throw new ApplicationException("Rental not found");
 
-            var result = new CalendarViewModel 
+            var result = new CalendarViewModel
             {
                 RentalId = rentalId,
-                Dates = new List<CalendarDateViewModel>() 
+                Dates = new List<CalendarDateViewModel>()
             };
             for (var i = 0; i < nights; i++)
             {
                 var date = new CalendarDateViewModel
                 {
                     Date = start.Date.AddDays(i),
-                    Bookings = new List<CalendarBookingViewModel>()
+                    Bookings = new List<CalendarBookingViewModel>(),
+                    PreparationTimes = new List<CalendarPreparationViewModel>()
                 };
 
-                foreach (var booking in _bookings.Values)
+                List<BookingViewModel> bookings = _bookings.Values.Where(a => a.RentalId == rentalId).ToList();
+
+                foreach (var booking in bookings)
                 {
-                    if (booking.RentalId == rentalId
-                        && booking.Start <= date.Date && booking.Start.AddDays(booking.Nights) > date.Date)
+                    int preparationTimeInDays = _rentals[rentalId].PreparationTimeInDays;
+
+                    if (booking.Start <= date.Date &&
+                        booking.Start.AddDays(booking.Nights - 1).Date >= date.Date)
                     {
-                        date.Bookings.Add(new CalendarBookingViewModel { Id = booking.Id });
+                        int unitCount = bookings.Where(a => date.Date >= a.Start && date.Date <= a.Start.AddDays(a.Nights - 1).Date).Count();
+
+                        date.Bookings.Add(new CalendarBookingViewModel
+                        {
+                            Id = booking.Id,
+                            Unit = unitCount
+                        });
+                    }
+                    else
+                    {
+                        CalendarBookingViewModel calendarBooking = new CalendarBookingViewModel
+                        {
+                            Id = booking.Id,
+                            Unit = 0
+                        };
+
+                        if (preparationTimeInDays > 0 &&
+                            booking.Start.AddDays(booking.Nights - 1).AddDays(preparationTimeInDays).Date == date.Date)
+                        {
+                            int unitCount = bookings.Where(a => date.Date == a.Start.AddDays(a.Nights - 1).AddDays(preparationTimeInDays)).Count();
+                            date.PreparationTimes.Add(new CalendarPreparationViewModel
+                            {
+                                Unit = unitCount
+                            });
+                        }
                     }
                 }
 
